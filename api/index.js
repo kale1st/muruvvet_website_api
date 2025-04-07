@@ -1,6 +1,17 @@
 const express = require("express");
 const nodemailer = require("nodemailer");
+const cors = require("cors");
 const app = express();
+
+// CORS middleware'i ekle
+app.use(
+  cors({
+    origin: ["https://muruvvet-goettingen.web.app", "http://localhost:4200"],
+  })
+);
+
+// JSON verilerini alabilmek için middleware
+app.use(express.json());
 
 const port = process.env.PORT || 3000;
 
@@ -9,7 +20,7 @@ app.get("/hello", (req, res) => {
 });
 
 // Mail gönderme işlevini yazalım
-const sendEmail = async () => {
+const sendEmail = async (recipient, subject, textContent) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -19,10 +30,10 @@ const sendEmail = async () => {
   });
 
   const mailOptions = {
-    from: "your-email@gmail.com", // Gönderen e-posta
-    to: "recipient-email@example.com", // Alıcı e-posta
-    subject: "Test Email from Node.js",
-    text: "This is a test email sent using Nodemailer and Gmail App Password in Node.js!",
+    from: "muruvvet.goettingen@gmail.com", // Gönderen e-posta
+    to: recipient, // Alıcı e-posta
+    subject: subject, // Dinamik konu
+    text: textContent, // Dinamik içerik
   };
 
   try {
@@ -33,12 +44,21 @@ const sendEmail = async () => {
   }
 };
 
-// Express route to trigger email sending
-app.get("/send-email", async (req, res) => {
-  await sendEmail();
+// Angular'dan gelen isteği alarak e-posta gönderecek endpoint
+app.post("/send-email", async (req, res) => {
+  const { recipient, subject, textContent } = req.body;
+
+  if (!recipient || !subject || !textContent) {
+    return res
+      .status(400)
+      .send("Missing required fields: recipient, subject, or textContent.");
+  }
+
+  await sendEmail(recipient, subject, textContent);
   res.send("Email has been sent!");
 });
 
+// Vercel uyumu için module export
 module.exports = (req, res) => {
   app(req, res); // Vercel'in beklediği şekilde export
 };
