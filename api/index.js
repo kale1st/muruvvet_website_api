@@ -20,45 +20,58 @@ app.get("/hello", (req, res) => {
 });
 
 // Mail gönderme işlevini yazalım
-const sendEmail = async (recipient, subject, textContent) => {
+const sendEmail = async (sender, subject, textContent) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: "muruvvet.goettingen@gmail.com", // Kendi e-posta adresinizi girin
-      pass: "qscu dyxn eolg khfg", // Gmail App Password
+      user: "muruvvet.goettingen@gmail.com",
+      pass: "qscu dyxn eolg khfg",
     },
   });
 
   const mailOptions = {
-    from: "muruvvet.goettingen@gmail.com", // Gönderen e-posta
-    to: recipient, // Alıcı e-posta
-    subject: subject, // Dinamik konu
-    text: textContent, // Dinamik içerik
+    from: sender,
+    to: "muruvvet.goettingen@gmail.com",
+    subject: subject,
+    text: `From: ${sender}\n\n${textContent}`,
+    replyTo: sender,
   };
 
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully!");
-  } catch (error) {
-    console.log("Error sending email:", error);
-  }
+  return transporter.sendMail(mailOptions);
 };
 
 // Angular'dan gelen isteği alarak e-posta gönderecek endpoint
 app.post("/send-email", async (req, res) => {
-  const { recipient, subject, textContent } = req.body;
+  const { sender, subject, textContent } = req.body;
 
-  if (!recipient || !subject || !textContent) {
-    return res
-      .status(400)
-      .send("Missing required fields: recipient, subject, or textContent.");
+  if (!sender || !subject || !textContent) {
+    return res.status(400).json({
+      error: "Missing required fields",
+      missing: {
+        sender: !sender,
+        subject: !subject,
+        textContent: !textContent,
+      },
+    });
   }
 
-  await sendEmail(recipient, subject, textContent);
-  res.json({ message: mailOptions });
+  try {
+    await sendEmail(sender, subject, textContent);
+    console.log("Email sent successfully!");
+    res.json({ message: "Email has been sent!" });
+  } catch (error) {
+    console.error("Error sending email:", error);
+    res
+      .status(500)
+      .json({ error: "Email sending failed", details: error.toString() });
+  }
 });
 
 // Vercel uyumu için module export
 module.exports = (req, res) => {
   app(req, res); // Vercel'in beklediği şekilde export
 };
+
+app.listen(port, () => {
+  console.log(port);
+});
