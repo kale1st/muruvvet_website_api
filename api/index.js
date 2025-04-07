@@ -55,7 +55,7 @@ app.post("/send-email", async (req, res) => {
   }
 
   await sendEmail(recipient, subject, textContent);
-  res.send();
+  res.json({ message: "Email has been sent!" });
 });
 
 // Vercel uyumu için module export
